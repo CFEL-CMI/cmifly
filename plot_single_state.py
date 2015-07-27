@@ -78,7 +78,7 @@ for i in range(len(simdata_array)):
     ypos_final[i] = simdata_array[i][2]
 
 if args.profile !=None or args.save != None:
-    hist, xedges = numpy.histogram(ypos_final, range=(-0.001,0.001),bins=args.bins)
+    hist, xedges = numpy.histogram(ypos_final, range=(-0.002,0.002),bins=args.bins)
     yposition = numpy.linspace(xedges[0]*1000, xedges[-1]*1000, num=args.bins)
 
 if args.scatter != None:

@@ -61,6 +61,8 @@ elif args.molecule == "mephenesin":
     mass = 182.216
 elif args.molecule == "water":
     mass = 18.015
+elif args.molecule == "adenine":
+    mass = 135.13
 else:
     print("unrecognised molecule!")
 outputfile = args.molecule + "_" + str(args.voltage) + "kV.5fly"
@@ -71,7 +73,7 @@ jmax=args.jmax
 # positions are relative to the beginning of the deflector at position (x, y, z) = (0, 0, 0)
 # x- and y-width as well as vx- and vy-width must be identical
 source_position = numpy.array([0, 0, -0.2462, 0, 0, 1900])
-source_width = numpy.array([0.001, 0.001, 0, 1, 1, 19])
+source_width = numpy.array([0.0001, 0.0001, 0, 1, 1, 19])
 
 # deflector length (m)
 deflector_length = 0.154
