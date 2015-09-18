@@ -32,7 +32,7 @@ parser.add_argument(
                     "-m",
                     "--molecule",
                     type=str,
-                    default="OCS",
+                    default="adenine",
                     help="Specify molecule of interest. See code for implemented molecules.")
 parser.add_argument(
                     "-j",
