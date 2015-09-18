@@ -1,4 +1,4 @@
-#!/opt/local/bin/python
+#!/usr/bin/env python
 # Trajectory simulation for molecular beam deflection by inhomogeneous electric fields
 #
 # This Python program is partly based on the peer-reviewed article
