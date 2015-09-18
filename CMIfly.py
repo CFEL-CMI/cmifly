@@ -346,36 +346,3 @@ if "__main__" == __name__:
                         print("hit "+str(hit))
                         # all molecules flown, close output and finish
     output.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
