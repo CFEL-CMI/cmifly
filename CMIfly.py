@@ -65,7 +65,7 @@ elif args.molecule == "adenine":
     mass = 135.13
 else:
     print("unrecognised molecule!")
-outputfile = args.molecule + "_" + str(args.voltage) + "kV.5fly"
+outputfile = args.molecule + "_" + str(args.voltage) + "kV.5.fly"
 jmax=args.jmax
 
 #-------------------------SETTING UP MACHINE PARAMETERS FOR NS-DYNAMIX
