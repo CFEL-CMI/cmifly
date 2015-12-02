@@ -18,31 +18,26 @@
 
 __author__ = "Jochen Küpper <jochen.kuepper@cfel.de>"
 
+__doc__ = """Propagate particles in force field"""
+
 import numpy as np
-import tables
 
 
-class Detector:
-    """Default detector implementation
+def propagate(particle, accel, detector):
+    """particle trajectory calculation integrator
 
-    This detector takes the (final) phase position passed and saves it to the specified single HDF5 file.
+    Implement a particle trajectory calculation integrator that transports the particle from z0/t0 through the
+    acceleration field until one of the position z_max or time t_max from the detector are reached.
 
-    ..todo:: Should close the file upon destruction of the object
-    """
+    The particles' initial positions include z_0 and t_0
 
-    def __init__(self, outname, z_max, t_max):
-        # create a pytables HDF5 file to store all final phase-space points in
-        # should enforce prefix ".fly" (simply add if not there)
-        self.__z_max = z_max
-        self.__t_max = t_max
+    Returns the final phase-space position.
 
-
-    def append(self, position):
-        # add position to HDF5 table file
-        pass
+    """`
+    pass
 
 
-    def z_max(self): return self.__z_max
-
-
-    def t_max(self): return self.__t_max
+def fly(source, acceleration, detector, n=1e6):
+    """Calculate trajectories for n particles"""
+    for range(n):
+        propagate(source.next(), acceleration, detector)
