@@ -35,3 +35,38 @@ class Source:
     def next(self, n=1):
         # return next $n$ molecule
         return np.random.uniform(size=6)
+
+class CollimatedSource:
+    """Collimated particle source
+
+    Provide a 6d phase-space position. The x and y positionis drawn from a normal random number generator. z and the velocities are pre defined by the user.
+    """
+
+    def __init__(self, center, sigma, velocity ):
+        self.__center = center
+        self.__sigma = sigma
+        self.__v = velocity
+
+    def next(self)
+        # return next molecule
+        return [np.random.normal(self.__center[0],self.__sigma.[0],1),np.random.normal(self.__center[1],self.__sigma.[1],1),self.__center[2],0.,0.,-abs(self.__v)]
+
+class FocusedSource:
+    """Focused particle source
+        
+        Provide a 6d phase-space position. The x and y positionis drawn from a normal random number generator. z is pre defined by the user. The velocities are adapted to get a focus with user defined position and width.
+        """
+    
+    def __init__(self, center, sigma, velocity, focus_z_position, focus_sigma ):
+        self.__center = center
+        self.__sigma = sigma
+        self.__v = velocity
+        self.__f = focus_z_position
+        self.__sigma_f = focus_sigma
+    
+    
+    def next(self)
+    # return next molecule
+    focus_distance=[np.random.normal(0,self.__sigma_f.[0],1),np.random.normal(0,self.__sigma_f.[1],1),-abs(self.__f)]
+    t=np.sqrt(focus_distance[0]**2+focus_distance[1]**2+focus_distance[2]**2)/abs(self.__v)
+    return [np.random.normal(self.__center[0],self.__sigma.[0],1),np.random.normal(self.__center[1],self.__sigma.[1],1),self.__center[2],focus_distance[0]/t,focus_distance[1]/t,focus_distance[2]/t]
