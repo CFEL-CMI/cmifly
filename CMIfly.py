@@ -8,10 +8,11 @@
 # import generally necessary modules
 import math, random, tarfile
 import tables
+import sys
 from tables import *
-import numpy
+import numpy as np
 from scipy import interpolate
-from scipy.integrate import odeint
+from scipy.integrate import ode
 import argparse
 
 #-------------------------PARSE ARGUMENTS FROM COMMAND LINE
@@ -35,6 +36,12 @@ parser.add_argument(
                     default="adenine",
                     help="Specify molecule of interest. See code for implemented molecules.")
 parser.add_argument(
+                    "-s",
+                    "--source",
+                    type=str,
+                    default="gauss",
+                    help="Specify source samples. Gauss or uniform. default = gauss.")
+parser.add_argument(
                     "-j",
                     "--jmax",
                     type=int,
@@ -54,26 +61,17 @@ num_molecules = args.particles
 deflector_voltage = args.voltage
 # Stark energy files
 stark_filename = args.molecule + ".stark"
-# mass of molecule (u -- unified atomic mass units)
-if args.molecule == "OCS":
-    mass = 60.075
-elif args.molecule == "mephenesin":
-    mass = 182.216
-elif args.molecule == "water":
-    mass = 18.015
-elif args.molecule == "adenine":
-    mass = 135.13
-else:
-    print("unrecognised molecule!")
-outputfile = args.molecule + "_" + str(args.voltage) + "kV.5.fly"
+stark_path = "/usr/local/share/coldmol/molecules/"
+
+outputfile = args.molecule + "_gauss_" + str(args.voltage) + "kV.5fly"
 jmax=args.jmax
 
 #-------------------------SETTING UP MACHINE PARAMETERS FOR NS-DYNAMIX
 # molecular beam source position and spread [x, y, z, vx, yv, vz] (m, m, m, m/s, m/s, m/s)
 # positions are relative to the beginning of the deflector at position (x, y, z) = (0, 0, 0)
 # x- and y-width as well as vx- and vy-width must be identical
-source_position = numpy.array([0, 0, -0.2462, 0, 0, 1900])
-source_width = numpy.array([0.0001, 0.0001, 0, 1, 1, 19])
+source_position = np.array([0, 0, -0.439, 0, 0, 670])
+source_width = np.array([0.0001, 0.0001, 0.0, 0.5, 0.5, 6.7]) #for gauss sampling, these are st devs.
 
 # deflector length (m)
 deflector_length = 0.154
@@ -88,52 +86,65 @@ rod_radius = 0.003 # rod radius
 trough_center = [0, 0.002408] # trough center (x,y)
 trough_radius = 0.0032 # trough radius
 # detector_position (m)
-detector_position = 0.303
+detector_position = 0.301
 
 # skimmer1
 # skimmer1 position [x,y,z] and width
-skimmer1_position = numpy.array([0,0,-0.193])
+skimmer1_position = np.array([0,0,-0.362])
 skimmer1_width = 0.002
 # skimmer2
 # skimmer2 position [x,y,z] and width
-skimmer2_position = numpy.array([0,0,-0.02856])
+skimmer2_position = np.array([0,0,-0.02856])
 skimmer2_width = 0.001
 # skimmer3
 # skimmer3 position [x,y,z] and width
-skimmer3_position = numpy.array([0,0,0.167])
-skimmer3_width = 0.0015
+skimmer3_position = np.array([0,0,0.167])
+skimmer3_width = 0.001
 
 ########## no input required below this line ##########
-
-# test input for consistency
-assert(source_width[0] == source_width[1])
-assert(source_width[3] == source_width[4])
 
 # convert units into internal units
 # deflector voltage is only relevant as a scaling factor of the read fields
 deflector_voltage_scaling = deflector_voltage / deflector_field_voltage
 # mass (u -> kg)
 u =  1.660538782e-27 # kg
+
+#read molecule mass from stark file
+f=tables.openFile(stark_path+stark_filename, 'r')
+mass = f.getNode('/masses')[0][0]
+f.close()
 mass *= u
 
-def sample_source(position, width):
+if args.source == "gauss":
+    source_covariance = np.zeros((6,6))
+    for i in range(6):
+        for j in range(6):
+            if i==j:
+                source_covariance[i][j] = source_width[i]**2
+
+def sample_source_uniform(position, width):
     """Sample the molecular beam source as defined above and return next molecules start position.
 
     This uses a random number generator to Monte-Carlo sample the defined source.
     """
     from numpy.random import uniform, normal
-    pos = numpy.zeros(6)
+    pos = np.zeros(6)
     # we do geometric 2D uniform sampling in (x,y) to get a uniform 2d distribution
     while True:
         x, y = uniform(-0.5*width[0], 0.5*width[0], 2)
-        if numpy.sqrt(x**2+y**2) <= 0.5*width[0]:
+        if np.sqrt(x**2+y**2) <= 0.5*width[0]:
             pos[0:2] = x + position[0], y + position[1]
             break
     pos[2] = uniform(-0.5*width[2], 0.5*width[2]) + position[2]
     pos[3:6] = normal(position[3:6], 0.5*width[3:6])
     return pos
 
-def derivative(position, t):
+def sample_source_gauss(position, width):
+    pos = np.zeros(6)
+    pos = np.random.multivariate_normal(position,source_covariance)
+    return pos
+
+def derivative(t,position):
     """Calculate the derivative of the current phase-space position.
 
     d(x, y, z, vx, vy, vz) / dt = (vx, vy, vz, ax=dvx/dt, ay=dvy/dt, az=dvz/dt)
@@ -141,15 +152,19 @@ def derivative(position, t):
     For positions outside the deflector, ax = ay = az = 0.
     """
     acceleration_x, acceleration_y = acceleration(position) # obtain accerlation forces
-    derivative = numpy.array(position)
+    derivative = np.array(position)
     derivative[0:3] = position[3:6]
+    #print('z:'+str(position[2]))
+    #print('t:'+str(t))
     if position[2] >= 0.0 and position[2] <= deflector_length:
         ### this needs to be done right!
         derivative[3] = acceleration_x/mass
         derivative[4] = acceleration_y/mass
         derivative[5] = 0.0
+    #print('acceleration:'+str(acceleration_x))
     else:
         derivative[3:6] = (0,0,0)
+    #print('no acceleration')
     return derivative
 
 def stark_effect(state, filename):
@@ -158,14 +173,14 @@ def stark_effect(state, filename):
     Return
     Returns a 3-tuple of arrays containing the field strengths, the energies, and the effective dipole moments
     """
-    f=tables.openFile(filename, 'r')
+    f=tables.openFile(stark_path+filename, 'r')
     state_label =  "/_" + str(state[0]) + "/_" + str(state[1]) + "/_" + str(state[2]) + "/_" + str(state[3])  + "/_" + str(state[4])
     field_norm_array = f.getNode("/" + state_label + "/dcfield")
     energy_array = f.getNode("/" + state_label + "/dcstarkenergy")
-    field_norm = numpy.array(field_norm_array.read())[0]
-    energy = numpy.array(energy_array.read())[0]
+    field_norm = np.array(field_norm_array.read())[0]
+    energy = np.array(energy_array.read())[0]
     # calculate mueff from Stark energy
-    mueff = numpy.zeros((len(field_norm),), numpy.float64)
+    mueff = np.zeros((len(field_norm),), np.float64)
     mueff[1:-1] = -1 * (energy[0:-2] - energy[2:]) / (field_norm[0:-2] - field_norm[2:])
     mueff[0] = 0.
     mueff[-1] = mueff[-2]
@@ -190,10 +205,10 @@ def read_deflection_field(filename):
     linesplit = line.split(" ")
     xfn, yfn, zfn = map(int, linesplit)
     # create a new array for import field grid values
-    field = numpy.zeros((xfn,yfn),float)
+    field = np.zeros((xfn,yfn),float)
     # create x,y mesh of field grid
-    xf = numpy.linspace(xfs,xfs+dfx*(xfn-1),xfn)
-    yf = numpy.linspace(yfs+dfy*(yfn-1),yfs,yfn) # transform -y to +y
+    xf = np.linspace(xfs,xfs+dfx*(xfn-1),xfn)
+    yf = np.linspace(yfs+dfy*(yfn-1),yfs,yfn) # transform -y to +y
     for xfi in range(xfn):
         for yfi in range(yfn):
             line = lines[3 + yfi + xfi * yfn][:-1] # remove EOL
@@ -218,12 +233,12 @@ def read_deflection_gradient(filename):
     linesplit = line.split(" ")
     xgn, ygn, zgn = map(int, linesplit)
     # create a new array for import field values
-    gradx = numpy.zeros((xgn,ygn),float)
-    grady = numpy.zeros((xgn,ygn),float)
-    gradz = numpy.zeros((xgn,ygn),float)
+    gradx = np.zeros((xgn,ygn),float)
+    grady = np.zeros((xgn,ygn),float)
+    gradz = np.zeros((xgn,ygn),float)
     # create x,y mesh of field gridd
-    xg = numpy.linspace(xgs,xgs+dxg*(xgn-1),xgn)
-    yg = numpy.linspace(ygs+dyg*(ygn-1),ygs,ygn) # transform -y to +y
+    xg = np.linspace(xgs,xgs+dxg*(xgn-1),xgn)
+    yg = np.linspace(ygs+dyg*(ygn-1),ygs,ygn) # transform -y to +y
     for xgi in range(xgn):
         for ygi in range(ygn):
             line = lines[3 + ygi + xgi * ygn][:-2] # remove EOL and one space
@@ -231,6 +246,7 @@ def read_deflection_gradient(filename):
             gradx[xgi][ygi], grady[xgi][ygi], gradz[xgi][ygi] = map(float, linesplit)
     return xg, yg, gradx, grady
     f.close()
+
 
 def generate_acceleration_field(state, stark_filename, field_filename, gradient_filename, scaling=1.):
     """Generate a acceleration field at the same positions as the electric field is defined.
@@ -263,6 +279,7 @@ def acceleration(position):
     mueff_value = mueff(deflection_field(position[0],position[1])[0])
     return deflection_gradient_x_value * mueff_value, deflection_gradient_y_value * mueff_value
 
+
 def fly(initial_position, acceleration_z_bounds, skimmer1, skimmer2, skimmer3, final_z, final_t):
     """Propagate a molecule from it's initial phase-space |position| through the |acceleration| field (defined within its
     z_bounds) until the molecule reaches the final_z position ot final_t time is elapsed.
@@ -277,20 +294,27 @@ def fly(initial_position, acceleration_z_bounds, skimmer1, skimmer2, skimmer3, f
     hit_skimmer1 = False
     hit_skimmer2 = False
     hit_skimmer3 = False
-    position = odeint(derivative, initial_position, [t, t+dt])
-    while position[-1,2] <= final_z and t + dt <= final_t and not hit_deflector and not hit_skimmer1 and not hit_skimmer2 and not hit_skimmer3:
-        t += dt
-        position = odeint(derivative, position[-1,:], [t, t+dt])
-        hit_deflector = position[-1,2] > deflector_start and position[-1,2] < (deflector_length+deflector_start) and \
-                        (rod_radius**2 > (rod_center[0]-position[-1,0])**2 + (rod_center[1]-position[-1,1])**2 or \
-                        trough_radius**2 < (trough_center[0]-position[-1,0])**2 + (trough_center[1]-position[-1,1])**2)
-        hit_skimmer1 = position[-1,2] > skimmer1_position[2] and position[-1,2] < (skimmer1_position[2]+0.003) and \
-                      skimmer1_width**2/4 < (skimmer1_position[0]-position[-1,0])**2 + (skimmer1_position[1]-position[-1,1])**2
-        hit_skimmer2 = position[-1,2] > skimmer2_position[2] and position[-1,2] < (skimmer2_position[2]+0.003) and \
-                      skimmer2_width**2/4 < (skimmer2_position[0]-position[-1,0])**2 + (skimmer2_position[1]-position[-1,1])**2
-        hit_skimmer3 = position[-1,2] > skimmer3_position[2] and position[-1,2] < (skimmer3_position[2]+0.003) and \
-                       skimmer3_width**2/4 < (skimmer3_position[0]-position[-1,0])**2 + (skimmer3_position[1]-position[-1,1])**2
-    return position[-1,:], t
+    flag=0
+    integral=ode(derivative)
+    integral.set_integrator('vode',method='BDF',with_jacobian=False,atol=1e-8,rtol=1e-8,nsteps=100000)
+    integral.set_initial_value(initial_position,t)
+    while integral.successful() and integral.y[2] <= final_z and integral.t<= final_t and not hit_deflector and not hit_skimmer1 and not hit_skimmer2 and not hit_skimmer3:
+        integral.integrate(integral.t + dt)
+        #print('calculated time:'+str(integral.t))
+        hit_deflector = integral.y[2] > deflector_start and integral.y[2] < (deflector_length+deflector_start) and \
+                        (rod_radius**2 > (rod_center[0]-integral.y[0])**2 + (rod_center[1]-integral.y[1])**2 or \
+                        trough_radius**2 < (trough_center[0]-integral.y[0])**2 + (trough_center[1]-integral.y[1])**2)
+        hit_skimmer1 = integral.y[2] > skimmer1_position[2] and integral.y[2] < (skimmer1_position[2]+0.003) and \
+                      skimmer1_width**2/4 < (skimmer1_position[0]-integral.y[0])**2 + (skimmer1_position[1]-integral.y[1])**2
+        hit_skimmer2 = integral.y[2] > skimmer2_position[2] and integral.y[2] < (skimmer2_position[2]+0.003) and \
+                      skimmer2_width**2/4 < (skimmer2_position[0]-integral.y[0])**2 + (skimmer2_position[1]-integral.y[1])**2
+        hit_skimmer3 = integral.y[2] > skimmer3_position[2] and integral.y[2] < (skimmer3_position[2]+0.003) and \
+                       skimmer3_width**2/4 < (skimmer3_position[0]-integral.y[0])**2 + (skimmer3_position[1]-integral.y[1])**2
+        if integral.y[2]>=0 and flag==0:
+            integral.set_initial_value(integral.y,integral.t)
+            flag=1
+    #print(integral.y, integral.t)
+    return integral.y, integral.t
 
 #defining column headers for hdf5 file
 class Particle(IsDescription):
@@ -309,6 +333,11 @@ class Particle(IsDescription):
     yvel_initial      = FloatCol(pos=13)
     zvel_initial      = FloatCol(pos=14)
 
+#print message to user
+print("Runnig CMIfly for ", args.molecule)
+print("Using a ",args.source," source distribution to fly ",args.particles," particles per state")
+print("Calculating up to J state ",args.jmax, '\n')
+
 if "__main__" == __name__:
     output = open_file(outputfile, mode = "w", title = (str(args.molecule) + " at " + str(args.voltage) + "kV"))
     for countj in range(0,jmax+1):
@@ -320,6 +349,7 @@ if "__main__" == __name__:
                     elif countka+countkc > countj+1 or countka+countkc < countj:
                         pass
                     else:
+                        print("Currently flying for state ",countj, countka, countkc, countm)
                         group = output.create_group("/", ("_"+str(countj)+"_"+str(countka)+"_"+str(countkc)+"_"+str(countm)+"_"+str(args.isomer)), ("J="+str(countj)+" Ka="+str(countka)+" Kc="+str(countkc)+" M="+str(countm)+" Isomer="+str(args.isomer)))
                         quantum_state =(countj, countka, countkc, countm, args.isomer)
                         # generate acceleration file from Stark-effect file and quantum state, and deflection field norm and gradient
@@ -334,8 +364,11 @@ if "__main__" == __name__:
                         table = output.create_table("/"+("_"+str(countj)+"_"+str(countka)+"_"+str(countkc)+"_"+str(countm)+"_"+str(args.isomer)), 'FlightData', Particle)
                         # let them fly
                         for n in range(num_molecules):
-                            initial = sample_source(source_position, source_width)
-                            final, time = fly(initial, (0, deflector_length), (skimmer1_position, skimmer1_width), (skimmer2_position, skimmer2_width), (skimmer3_position, skimmer3_width),detector_position, 0.001)
+                            if args.source == "uniform":
+                                initial = sample_source_uniform(source_position, source_width)
+                            else:
+                                initial = sample_source_gauss(source_position, source_width)
+                            final, time = fly(initial, (0, deflector_length), (skimmer1_position, skimmer1_width), (skimmer2_position, skimmer2_width), (skimmer3_position, skimmer3_width),detector_position, 0.1)
                             if final[2] >= detector_position:
                                 # trajectory reached end of deflector -> write initial and final positions to output file
                                 # save final phasespace in output file
@@ -343,6 +376,10 @@ if "__main__" == __name__:
                                 table.flush()
                             else:
                                 hit += 1
-                        print("hit "+str(hit))
+                            perc_progress = n/num_molecules * 100
+                            if perc_progress.is_integer():
+                                sys.stdout.write("Progress: " + str(np.round(perc_progress)) + "% \r")
+                                sys.stdout.flush()
+                        print("DONE, ", str(hit)," particles lost and ",str(num_molecules-hit)," particles detected! \n \n")
                         # all molecules flown, close output and finish
     output.close()

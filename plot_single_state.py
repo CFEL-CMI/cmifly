@@ -61,11 +61,11 @@ parser.add_argument(
 args=parser.parse_args()
 
 #define input path
-cmiflypath = "" #'/afs/desy.de/user/h/horked/CMIfly/'
 
+PathIN = ''#/DataCloud/WorkCloud/Calculations/Dipeptide/'
 #create correct systematic name for loadfile
 qs = args.quantum_state.split(',')
-loadfile = args.molecule + "_" + str(args.voltage) + "kV.5fly"
+loadfile = PathIN+args.molecule + "_" + str(args.voltage) + "kV.5fly"
 nodepath = "_" + qs[0] + "_"+ qs[1] + "_"+ qs[2] + "_"+ qs[3] + "_" + str(args.isomer)
 
 #open 5fly file and read data from correct node
