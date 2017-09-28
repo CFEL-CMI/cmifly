@@ -1,2 +1,5 @@
 *.fly
 *.molecule
+*.egg-info
+build/
+dist/
