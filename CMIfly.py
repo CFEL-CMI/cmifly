@@ -70,8 +70,9 @@ jmax=args.jmax
 # molecular beam source position and spread [x, y, z, vx, yv, vz] (m, m, m, m/s, m/s, m/s)
 # positions are relative to the beginning of the deflector at position (x, y, z) = (0, 0, 0)
 # x- and y-width as well as vx- and vy-width must be identical
-source_position = np.array([0, 0, -0.439, 0, 0, 670])
-source_width = np.array([0.0001, 0.0001, 0.0, 0.5, 0.5, 6.7]) #for gauss sampling, these are st devs.
+source_position = np.array([0, 0, -0.437, 0, 0, 670])
+source_width = np.array([0.0001, 0.0001, 0, 1.5, 1.5, 7])
+#source_width = np.array([0,0,0,0,0,0]) #for gauss sampling, these are st devs.
 
 # deflector length (m)
 deflector_length = 0.154
@@ -99,7 +100,7 @@ skimmer2_width = 0.001
 # skimmer3
 # skimmer3 position [x,y,z] and width
 skimmer3_position = np.array([0,0,0.167])
-skimmer3_width = 0.001
+skimmer3_width = 0.0015
 
 ########## no input required below this line ##########
 
@@ -184,7 +185,7 @@ def stark_effect(state, filename):
     mueff[1:-1] = -1 * (energy[0:-2] - energy[2:]) / (field_norm[0:-2] - field_norm[2:])
     mueff[0] = 0.
     mueff[-1] = mueff[-2]
-    mueff_interp = interpolate.interp1d(field_norm,mueff) # create interpolate object
+    mueff_interp = interpolate.interp1d(field_norm,mueff,bounds_error=False) # create interpolate object
     f.close()
     return mueff_interp
 
