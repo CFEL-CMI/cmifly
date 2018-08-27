@@ -75,9 +75,9 @@ boltzmann = 1.38065053e-23
 #position of the stark file
 stark_filename = args.molecule + ".stark"
 stark_dir = ""#/usr/local/share/coldmol/molecules/"
-flyfile = args.molecule + "_" + str(args.voltage) + "kV.5fly"
-fstark=tables.openFile(stark_dir+stark_filename, 'r') # stark files
-ffly = tables.openFile(flyfile, 'r')
+flyfile = args.molecule + "_" +"gauss_" + str(args.voltage) + "kV.5fly"
+fstark=tables.open_file(stark_dir+stark_filename, 'r') # stark files
+ffly = tables.open_file(flyfile, 'r')
 
 #histogram parameters
 hist_range = args.range.split(",")
@@ -97,9 +97,9 @@ for J in range(0, args.jmax+1):
                 elif Ka+Kc > J+1 or Ka+Kc < J:
                     pass
                 else:
-                    array=fstark.getNode("/_"+str(J)+"/_"+str(Ka)+"/_"+str(Kc)+"/_"+str(M)+"/_0/dcstarkenergy")
+                    array=fstark.get_node("/_"+str(J)+"/_"+str(Ka)+"/_"+str(Kc)+"/_"+str(M)+"/_0/dcstarkenergy")
                     starkcurve=numpy.array(array.read())
-                    simdata_array = ffly.getNode("/" + ( "_" + str(J) + "_"+ str(Ka) + "_"+ str(Kc) + "_"+ str(M) + "_" + str(args.isomer)) + "/FlightData")
+                    simdata_array = ffly.get_node("/" + ( "_" + str(J) + "_"+ str(Ka) + "_"+ str(Kc) + "_"+ str(M) + "_" + str(args.isomer)) + "/FlightData")
                     ypos_final = [0 for x in range(len(simdata_array))]
                     for i in range(len(simdata_array)):
                         ypos_final[i] = simdata_array[i][2]

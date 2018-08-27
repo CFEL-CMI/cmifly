@@ -14,6 +14,7 @@ import numpy as np
 from scipy import interpolate
 from scipy.integrate import ode
 import argparse
+import matplotlib.pyplot as plt
 
 #-------------------------PARSE ARGUMENTS FROM COMMAND LINE
 parser = argparse.ArgumentParser()
@@ -53,6 +54,13 @@ parser.add_argument(
                     type=int,
                     default=0,
                     help="specify isomer to simulate. default = 0")
+parser.add_argument(
+                    "-pf",
+                    "--plotdeflectionfield",
+                    action='store_true',
+                    default=True,
+                    help="plot deflection field")
+
 args=parser.parse_args()
 #-----------------------SETTING UP CALCULATION PARAMETERS
 # number of molecules/trajectories to calculate
@@ -111,8 +119,8 @@ deflector_voltage_scaling = deflector_voltage / deflector_field_voltage
 u =  1.660538782e-27 # kg
 
 #read molecule mass from stark file
-f=tables.openFile(stark_path+stark_filename, 'r')
-mass = f.getNode('/masses')[0][0]
+f=tables.open_file(stark_path+stark_filename, 'r')
+mass = f.get_node('/masses')[0][0]
 f.close()
 mass *= u
 
@@ -174,10 +182,10 @@ def stark_effect(state, filename):
     Return
     Returns a 3-tuple of arrays containing the field strengths, the energies, and the effective dipole moments
     """
-    f=tables.openFile(stark_path+filename, 'r')
+    f=tables.open_file(stark_path+filename, 'r')
     state_label =  "/_" + str(state[0]) + "/_" + str(state[1]) + "/_" + str(state[2]) + "/_" + str(state[3])  + "/_" + str(state[4])
-    field_norm_array = f.getNode("/" + state_label + "/dcfield")
-    energy_array = f.getNode("/" + state_label + "/dcstarkenergy")
+    field_norm_array = f.get_node("/" + state_label + "/dcfield")
+    energy_array = f.get_node("/" + state_label + "/dcstarkenergy")
     field_norm = np.array(field_norm_array.read())[0]
     energy = np.array(energy_array.read())[0]
     # calculate mueff from Stark energy
@@ -206,14 +214,14 @@ def read_deflection_field(filename):
     linesplit = line.split(" ")
     xfn, yfn, zfn = map(int, linesplit)
     # create a new array for import field grid values
-    field = np.zeros((xfn,yfn),float)
+    field = np.zeros((yfn,xfn),float)
     # create x,y mesh of field grid
     xf = np.linspace(xfs,xfs+dfx*(xfn-1),xfn)
     yf = np.linspace(yfs+dfy*(yfn-1),yfs,yfn) # transform -y to +y
     for xfi in range(xfn):
         for yfi in range(yfn):
             line = lines[3 + yfi + xfi * yfn][:-1] # remove EOL
-            field[xfi][yfi] = float(line)
+            field[yfi,xfi] = float(line)
     rawdata.close()
     return xf, yf, field
 
@@ -234,9 +242,9 @@ def read_deflection_gradient(filename):
     linesplit = line.split(" ")
     xgn, ygn, zgn = map(int, linesplit)
     # create a new array for import field values
-    gradx = np.zeros((xgn,ygn),float)
-    grady = np.zeros((xgn,ygn),float)
-    gradz = np.zeros((xgn,ygn),float)
+    gradx = np.zeros((ygn,xgn),float)
+    grady = np.zeros((ygn,xgn),float)
+    gradz = np.zeros((ygn,xgn),float)
     # create x,y mesh of field gridd
     xg = np.linspace(xgs,xgs+dxg*(xgn-1),xgn)
     yg = np.linspace(ygs+dyg*(ygn-1),ygs,ygn) # transform -y to +y
@@ -244,7 +252,7 @@ def read_deflection_gradient(filename):
         for ygi in range(ygn):
             line = lines[3 + ygi + xgi * ygn][:-2] # remove EOL and one space
             linesplit = line.split(" ")
-            gradx[xgi][ygi], grady[xgi][ygi], gradz[xgi][ygi] = map(float, linesplit)
+            gradx[ygi][xgi], grady[ygi][xgi], gradz[ygi][xgi] = map(float, linesplit)
     return xg, yg, gradx, grady
     f.close()
 
@@ -302,7 +310,8 @@ def fly(initial_position, acceleration_z_bounds, skimmer1, skimmer2, skimmer3, f
     while integral.successful() and integral.y[2] <= final_z and integral.t<= final_t and not hit_deflector and not hit_skimmer1 and not hit_skimmer2 and not hit_skimmer3:
         integral.integrate(integral.t + dt)
         #print('calculated time:'+str(integral.t))
-        hit_deflector = integral.y[2] > deflector_start and integral.y[2] < (deflector_length+deflector_start) and \
+        if rod_radius != 0:
+            hit_deflector = integral.y[2] > deflector_start and integral.y[2] < (deflector_length+deflector_start) and \
                         (rod_radius**2 > (rod_center[0]-integral.y[0])**2 + (rod_center[1]-integral.y[1])**2 or \
                         trough_radius**2 < (trough_center[0]-integral.y[0])**2 + (trough_center[1]-integral.y[1])**2)
         hit_skimmer1 = integral.y[2] > skimmer1_position[2] and integral.y[2] < (skimmer1_position[2]+0.003) and \
@@ -334,6 +343,13 @@ class Particle(IsDescription):
     yvel_initial      = FloatCol(pos=13)
     zvel_initial      = FloatCol(pos=14)
 
+def plot_norm(field, x, y,lab): 
+    plt.figure()
+    plt.pcolormesh(x*mm,y*mm,field/Vm_kVcm, cmap='plasma')
+    plt.colorbar()
+    plt.title(lab+'Field (kV/cm)')
+    plt.show()
+    
 #print message to user
 print("Runnig CMIfly for ", args.molecule)
 print("Using a ",args.source," source distribution to fly ",args.particles," particles per state")
@@ -384,3 +400,14 @@ if "__main__" == __name__:
                         print("DONE, ", str(hit)," particles lost and ",str(num_molecules-hit)," particles detected! \n \n")
                         # all molecules flown, close output and finish
     output.close()
+    
+if args.plotdeflectionfield == True:
+    field_x_grid, field_y_grid, deflection_field_norm = read_deflection_field(deflector_fieldnorm_filename)
+    plot_norm(deflection_field(field_x_grid,field_y_grid), field_x_grid, field_y_grid, 'interpolated')
+    field_x_grid_original, field_y_grid_original, deflection_field_original = read_deflection_field(deflector_fieldnorm_filename)
+    plot_norm(deflection_field_original*deflector_voltage_scaling,field_x_grid_original, field_y_grid_original, 'original')
+    step_x, step_y, field_x_grad, field_y_grad = read_deflection_gradient(deflector_fieldgradient_filename)
+    plot_norm(field_x_grad,step_x, step_y, 'original')
+    plot_norm(field_y_grad,step_x, step_y, 'original')
+    plot_norm(deflection_gradient_x(field_x_grid,field_y_grid),step_x, step_y, 'interpolated')
+    plot_norm(deflection_gradient_y(field_x_grid,field_y_grid),step_x, step_y, 'interpolated')
