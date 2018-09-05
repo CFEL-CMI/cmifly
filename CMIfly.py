@@ -289,7 +289,7 @@ def acceleration(position):
     return deflection_gradient_x_value * mueff_value, deflection_gradient_y_value * mueff_value
 
 
-def fly(initial_position, acceleration_z_bounds, skimmer1, skimmer2, skimmer3, final_z, final_t):
+def fly(initial_position, acceleration_z_bounds, skimmer1, skimmer2, skimmer3, final_z, final_t, norm_field_interp,norm_field_interp_0 ):
     """Propagate a molecule from it's initial phase-space |position| through the |acceleration| field (defined within its
     z_bounds) until the molecule reaches the final_z position ot final_t time is elapsed.
     """
@@ -307,6 +307,8 @@ def fly(initial_position, acceleration_z_bounds, skimmer1, skimmer2, skimmer3, f
     integral=ode(derivative)
     integral.set_integrator('vode',method='BDF',with_jacobian=False,atol=1e-8,rtol=1e-8,nsteps=100000)
     integral.set_initial_value(initial_position,t)
+    field_x_grid, field_y_grid, deflection_field_norm = read_deflection_field(deflector_fieldnorm_filename)
+    field_limit = np.max(deflection_field_norm)/10000
     while integral.successful() and integral.y[2] <= final_z and integral.t<= final_t and not hit_deflector and not hit_skimmer1 and not hit_skimmer2 and not hit_skimmer3:
         integral.integrate(integral.t + dt)
         #print('calculated time:'+str(integral.t))
@@ -314,6 +316,12 @@ def fly(initial_position, acceleration_z_bounds, skimmer1, skimmer2, skimmer3, f
             hit_deflector = integral.y[2] > deflector_start and integral.y[2] < (deflector_length+deflector_start) and \
                         (rod_radius**2 > (rod_center[0]-integral.y[0])**2 + (rod_center[1]-integral.y[1])**2 or \
                         trough_radius**2 < (trough_center[0]-integral.y[0])**2 + (trough_center[1]-integral.y[1])**2)
+        if rod_radius == 0 and deflector_voltage ==0:
+            hit_deflector = integral.y[2] > deflector_start and integral.y[2] < (deflector_length+deflector_start) and \
+                             norm_field_interp_0(integral.y[1],integral.y[0]) <= field_limit
+        else:
+            hit_deflector = integral.y[2] > deflector_start and integral.y[2] < (deflector_length+deflector_start) and \
+                             norm_field_interp(integral.y[1],integral.y[0]) <= field_limit
         hit_skimmer1 = integral.y[2] > skimmer1_position[2] and integral.y[2] < (skimmer1_position[2]+0.003) and \
                       skimmer1_width**2/4 < (skimmer1_position[0]-integral.y[0])**2 + (skimmer1_position[1]-integral.y[1])**2
         hit_skimmer2 = integral.y[2] > skimmer2_position[2] and integral.y[2] < (skimmer2_position[2]+0.003) and \
@@ -354,7 +362,7 @@ def plot_norm(field, x, y,lab):
 print("Runnig CMIfly for ", args.molecule)
 print("Using a ",args.source," source distribution to fly ",args.particles," particles per state")
 print("Calculating up to J state ",args.jmax, '\n')
-
+        
 if "__main__" == __name__:
     output = open_file(outputfile, mode = "w", title = (str(args.molecule) + " at " + str(args.voltage) + "kV"))
     for countj in range(0,jmax+1):
@@ -374,6 +382,8 @@ if "__main__" == __name__:
                                                                    deflector_fieldnorm_filename, deflector_fieldgradient_filename,
                                                                    deflector_voltage_scaling)
                         deflection_field, deflection_gradient_x, deflection_gradient_y = acceleration_fields
+                        acceleration_fields_0 = generate_acceleration_field(quantum_state, stark_filename,deflector_fieldnorm_filename, deflector_fieldgradient_filename,1)
+                        deflection_field_0, deflection_gradient_x_0, deflection_gradient_y_0 = acceleration_fields_0
                         mueff = stark_effect(quantum_state, stark_filename)
                         # hit count
                         hit = 0
@@ -385,7 +395,7 @@ if "__main__" == __name__:
                                 initial = sample_source_uniform(source_position, source_width)
                             else:
                                 initial = sample_source_gauss(source_position, source_width)
-                            final, time = fly(initial, (0, deflector_length), (skimmer1_position, skimmer1_width), (skimmer2_position, skimmer2_width), (skimmer3_position, skimmer3_width),detector_position, 0.1)
+                            final, time = fly(initial, (0, deflector_length), (skimmer1_position, skimmer1_width), (skimmer2_position, skimmer2_width), (skimmer3_position, skimmer3_width),detector_position, 0.1, deflection_field, deflection_field_0)
                             if final[2] >= detector_position:
                                 # trajectory reached end of deflector -> write initial and final positions to output file
                                 # save final phasespace in output file
