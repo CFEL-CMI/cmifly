@@ -7,7 +7,7 @@ The initial version of this code was published in the following paper and any us
 reference that publication:
 
 > Yuan-Pin Chang, Daniel Horke, Sebastian Trippel, Jochen Küpper: Spatially-controlled complex
-> molecules and their applications, ]_International Reviews in Physical Chemistry_ **34**, 557–590
+> molecules and their applications, [_International Reviews in Physical Chemistry_ **34**, 557–590
 > (2015)](https://dx.doi.org/10.1080/0144235x.2015.1077838); [arXiv:1505.05632
 > [physics]](https://arxiv.org/abs/1505.05632).
 
