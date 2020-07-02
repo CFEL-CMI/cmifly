@@ -1,5 +1,24 @@
+#!/usr/bin/ env python3
+# -*- coding: utf-8; fill-column: 100 truncate-lines: t -*-
+#
+# Trajectory simulation for molecular beam deflection by inhomogeneous electric fields
 # Programm for evaluating thermal population of J states.
-# Copyright (C) Daniel Horke 2015
+#
+# Copyright (C) 2015 Daniel Horke
+# Copyright (C) 2020 Controlled Molecule Imaging Group, Center for Free-Electron Laser Science,
+#                    Deutsches Elektronen-Synchrotron DESY and Universität Hamburg, Hamburg, Germany
+#
+# CMIfly is free software: you can redistribute it and/or modify it under the terms of the GNU
+# General Public License as published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version, considering the amendment provided in LICENSE.md.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with this program. If not,
+# see <https://www.gnu.org/licenses/>.
+
 
 import tables
 import numpy
@@ -8,6 +27,7 @@ from tables import *
 import argparse
 import matplotlib
 import matplotlib.pyplot as plt
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -144,14 +164,3 @@ if args.population != None:
     print((template.format("J", "Total Population", "Fractional Population")))
     for i in range(args.jmax+1):
         print(template.format(str(i), str(total_population[i]),str(fractional_population[i])))
-
-
-
-
-
-
-
-
-
-
-

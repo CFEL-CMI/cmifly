@@ -1,9 +1,24 @@
-#!/usr/bin/env python
-# -*- coding: utf-8; truncate-lines: t -*-
+#!/usre/bin/env python3
+# -*- coding: utf-8; fill-column: 100 truncate-lines: t -*-
+#
 # Trajectory simulation for molecular beam deflection by inhomogeneous electric fields
 #
-# This Python program is partly based on the peer-reviewed article
-# Copyright (C) Yuan-Pin Chang, Daniel Horke, Sebastian Trippel and Jochen Küpper, CFEL, DESY 2014
+# Copyright (C) 2014 Yuan-Pin Chang, Daniel Horke, Sebastian Trippel, and Jochen Küpper
+# Copyright (C) 2014–2020 Controlled Molecule Imaging Group, Center for Free-Electron Laser Science,
+#                         Deutsches Elektronen-Synchrotron DESY and Universität Hamburg, Hamburg, Germany
+#
+# CMIfly is free software: you can redistribute it and/or modify it under the terms of the GNU
+# General Public License as published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version, considering the amendment provided in LICENSE.md.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with this program. If not,
+# see <https://www.gnu.org/licenses/>.
+
+
 
 # import generally necessary modules
 import math, random, tarfile
