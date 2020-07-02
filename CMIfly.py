@@ -1,9 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8; truncate-lines: t -*-
 # Trajectory simulation for molecular beam deflection by inhomogeneous electric fields
 #
 # This Python program is partly based on the peer-reviewed article
 # Copyright (C) Yuan-Pin Chang, Daniel Horke, Sebastian Trippel and Jochen Küpper, CFEL, DESY 2014
-# all further developments (C) Daniel Horke, 2015
 
 # import generally necessary modules
 import math, random, tarfile
@@ -351,18 +351,18 @@ class Particle(IsDescription):
     yvel_initial      = FloatCol(pos=13)
     zvel_initial      = FloatCol(pos=14)
 
-def plot_norm(field, x, y,lab): 
+def plot_norm(field, x, y,lab):
     plt.figure()
     plt.pcolormesh(x*mm,y*mm,field/Vm_kVcm, cmap='plasma')
     plt.colorbar()
     plt.title(lab+'Field (kV/cm)')
     plt.show()
-    
+
 #print message to user
 print("Runnig CMIfly for ", args.molecule)
 print("Using a ",args.source," source distribution to fly ",args.particles," particles per state")
 print("Calculating up to J state ",args.jmax, '\n')
-        
+
 if "__main__" == __name__:
     output = open_file(outputfile, mode = "w", title = (str(args.molecule) + " at " + str(args.voltage) + "kV"))
     for countj in range(0,jmax+1):
@@ -410,7 +410,7 @@ if "__main__" == __name__:
                         print("DONE, ", str(hit)," particles lost and ",str(num_molecules-hit)," particles detected! \n \n")
                         # all molecules flown, close output and finish
     output.close()
-    
+
 if args.plotdeflectionfield == True:
     field_x_grid, field_y_grid, deflection_field_norm = read_deflection_field(deflector_fieldnorm_filename)
     plot_norm(deflection_field(field_x_grid,field_y_grid), field_x_grid, field_y_grid, 'interpolated')
