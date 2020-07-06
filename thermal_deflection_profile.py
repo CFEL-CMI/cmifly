@@ -122,16 +122,18 @@ for J in range(0, args.jmax+1):
                     simdata_array = ffly.get_node("/" + ( "_" + str(J) + "_"+ str(Ka) + "_"+ str(Kc) + "_"+ str(M) + "_" + str(args.isomer)) + "/FlightData")
                     ypos_final = [0 for x in range(len(simdata_array))]
                     for i in range(len(simdata_array)):
-                        # the deflection is in the x-direction, so ypos_final should be asigned to 
+                        # the deflection is in the x-direction, so ypos_final should be asigned to
                         # the column that contains the xpos_final
                         ypos_final[i] = simdata_array[i][1]
                     profile, xedges = numpy.histogram(ypos_final, range=hist_range ,bins=args.bins)
                     energy = starkcurve[0][0]
+                    # Nuclear spin statistical weights should be checked for each molecule
+                    nssw = 1.0
                     if M == 0:
-                        degen = 1
+                        Mdegen = 1.0
                     else:
-                        degen = 2
-                    population = float(degen) * math.exp(-energy/(boltzmann*args.temperature));
+                        Mdegen = 2.0
+                    population = nssw * Mdegen * math.exp(-energy/(boltzmann*args.temperature));
                     for i in range(args.bins):
                         profile_scaled[i] = profile_scaled[i] + (profile[i] * population)
                     population_J = population_J + population
