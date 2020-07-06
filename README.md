@@ -28,7 +28,7 @@ For now, this code is undocumented; this needs to be changed.
 ### Some notes on the usage for different setups
 
 For the a-type deflector, use the following lines in CMIfly.py:
-```
+```python
 deflector_fieldnorm_filename     = 'deflector_field_norm'
 deflector_fieldgradient_filename = 'deflector_field_gradient'
 # deflector_voltage for which the fields were calculated (kV)
@@ -41,7 +41,7 @@ trough_radius = 0.0032 # trough radius
 ```
 
 For the b-type deflector, use the following lines in CMIfly.py:
-```
+```python
 deflector_fieldnorm_filename     = 'Ec.norm.txt'
 deflector_fieldgradient_filename = 'gt.grad.txt'
 # deflector_voltage for which the fields were calculated (kV)
