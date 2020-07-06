@@ -366,15 +366,8 @@ class Particle(IsDescription):
     yvel_initial      = FloatCol(pos=13)
     zvel_initial      = FloatCol(pos=14)
 
-def plot_norm(field, x, y,lab):
-    plt.figure()
-    plt.pcolormesh(x*mm,y*mm,field/Vm_kVcm, cmap='plasma')
-    plt.colorbar()
-    plt.title(lab+'Field (kV/cm)')
-    plt.show()
-
 #print message to user
-print("Runnig CMIfly for ", args.molecule)
+print("Running CMIfly for ", args.molecule)
 print("Using a ",args.source," source distribution to fly ",args.particles," particles per state")
 print("Calculating up to J state ",args.jmax, '\n')
 
@@ -426,13 +419,37 @@ if "__main__" == __name__:
                         # all molecules flown, close output and finish
     output.close()
 
-if args.plotdeflectionfield == True:
-    field_x_grid, field_y_grid, deflection_field_norm = read_deflection_field(deflector_fieldnorm_filename)
-    plot_norm(deflection_field(field_x_grid,field_y_grid), field_x_grid, field_y_grid, 'interpolated')
-    field_x_grid_original, field_y_grid_original, deflection_field_original = read_deflection_field(deflector_fieldnorm_filename)
-    plot_norm(deflection_field_original*deflector_voltage_scaling,field_x_grid_original, field_y_grid_original, 'original')
-    step_x, step_y, field_x_grad, field_y_grad = read_deflection_gradient(deflector_fieldgradient_filename)
-    plot_norm(field_x_grad,step_x, step_y, 'original')
-    plot_norm(field_y_grad,step_x, step_y, 'original')
-    plot_norm(deflection_gradient_x(field_x_grid,field_y_grid),step_x, step_y, 'interpolated')
-    plot_norm(deflection_gradient_y(field_x_grid,field_y_grid),step_x, step_y, 'interpolated')
+if args.plotdeflectionfield == True:    
+    def plot_norm(grid_y,grid_x,norm_data):
+        """ Plotting the field """
+        electrode = norm_data.T
+        Vm_kVcm = 1e5 # conversion from V/m to kV/cm
+        mm = 1e3 # conversion from mm to m
+        
+        # Create an approximate figure with the interpolated field and gradients 
+        # You might have to adjust vmin and vmax, especially for the gradients!
+        # It could be that the y-axis is swapped (so y = -y)
+        # Note: |x| is the direction of deflection
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, sharex='all',sharey='all', figsize=(14,6))
+        ax1.pcolormesh(grid_x*mm, grid_y*mm,deflection_field.T/Vm_kVcm, cmap='plasma')
+        plt.xlim([np.min(grid_x)*mm, np.max(grid_x)*mm])
+        plt.ylim([np.min(grid_y)*mm, np.max(grid_y)*mm])
+        ax1.axis('equal')
+        ax2.pcolormesh(grid_x*mm, grid_y*mm,deflection_gradient_y.T, cmap='plasma', vmin = np.min(deflection_gradient_x), vmax = np.max(deflection_gradient_x))
+        ax2.axis('equal')
+        ax3.pcolormesh(grid_x*mm, grid_y*mm,deflection_gradient_x.T, cmap='plasma', vmin = np.min(deflection_gradient_y), vmax = np.max(deflection_gradient_y))
+        ax3.axis('equal')
+        ax1.set_xlabel('y (mm)')
+        ax1.set_ylabel('x (mm)')
+        ax1.set_title('Interpolated field (kV/cm)')
+        ax2.set_xlabel('y (mm)')
+        ax2.set_ylabel('x (mm)')
+        ax2.set_title('Interpolated gradient y')
+        ax3.set_xlabel('y (mm)')
+        ax3.set_ylabel('x (mm)')
+        ax3.set_title('Interpolated gradient x')
+        plt.show()
+    
+    field_x_grid, field_y_grid, deflection_field = read_deflection_field(deflector_fieldnorm_filename)
+    gradient_x_grid, gradient_y_grid, deflection_gradient_x, deflection_gradient_y = read_deflection_gradient(deflector_fieldgradient_filename)    
+    plot_norm(field_x_grid,field_y_grid,deflection_field)
