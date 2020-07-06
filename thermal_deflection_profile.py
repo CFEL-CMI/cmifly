@@ -127,17 +127,11 @@ for J in range(0, args.jmax+1):
                         ypos_final[i] = simdata_array[i][1]
                     profile, xedges = numpy.histogram(ypos_final, range=hist_range ,bins=args.bins)
                     energy = starkcurve[0][0]
-                    # The nuclear spin statistical weights should be checked for each molecule
-                    nssw = 0.0
-                    if(Ka%2 == 0):
-                        nssw = 5.0
-                    else:
-                        nssw = 3.0
                     if M == 0:
                         degen = 1
                     else:
                         degen = 2
-                    population = nssw * float(degen) * math.exp(-energy/(boltzmann*args.temperature));
+                    population = float(degen) * math.exp(-energy/(boltzmann*args.temperature));
                     for i in range(args.bins):
                         profile_scaled[i] = profile_scaled[i] + (profile[i] * population)
                     population_J = population_J + population
