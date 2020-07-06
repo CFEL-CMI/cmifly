@@ -107,9 +107,9 @@ for i in range(len(simdata_array)):
     time_final[i] = simdata_array[i][0]
     xpos_final[i] = simdata_array[i][1]
     ypos_final[i] = simdata_array[i][2]
-    time_inital[i] = simdata_array[i][8]
-    xpos_inital[i] = simdata_array[i][9]
-    ypos_inital[i] = simdata_array[i][10]
+    time_inital[i] = simdata_array[i][7]
+    xpos_inital[i] = simdata_array[i][8]
+    ypos_inital[i] = simdata_array[i][9]
 
 
 if args.profile !=None or args.save != None:
