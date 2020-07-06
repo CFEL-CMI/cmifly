@@ -25,11 +25,35 @@ For now, get the latest version from [github](https://github.com/CFEL-CMI/cmifly
 
 For now, this code is undocumented; this needs to be changed.
 
+### Some notes on the usage for different setups
 
-## ToDo
+For the a-type deflector, use the following lines in CMIfly.py:
+```
+deflector_fieldnorm_filename     = 'deflector_field_norm'
+deflector_fieldgradient_filename = 'deflector_field_gradient'
+# deflector_voltage for which the fields were calculated (kV)
+deflector_field_voltage = 5.
+# geometric boundary of the deflector
+rod_center = [0, 0.0036] # rod center (x,y)
+rod_radius = 0.003 # rod radius
+trough_center = [0, 0.002408] # trough center (x,y)
+trough_radius = 0.0032 # trough radius
+```
 
-Convert this to an installable Python package using setuptools and provide, at least, basic
-documentation.
+For the b-type deflector, use the following lines in CMIfly.py:
+```
+deflector_fieldnorm_filename     = 'Ec.norm.txt'
+deflector_fieldgradient_filename = 'gt.grad.txt'
+# deflector_voltage for which the fields were calculated (kV)
+deflector_field_voltage = 60.
+# geometric boundary of the deflector
+rod_center = [0, 0.0036] # rod center (x,y)
+rod_radius = 0 #0.003 # rod radius
+trough_center = [0, 0.002408] # trough center (x,y)
+trough_radius = 0 #0.0032 # trough radius
+Since the rod_radius = 0, it will now use the fields to determine the edge of the deflector
+```
+
 
 
 <!-- Put Emacs local variables into HTML comment
