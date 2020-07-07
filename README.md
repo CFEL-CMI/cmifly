@@ -20,10 +20,13 @@ details.
 For now, get the latest version from [github](https://github.com/CFEL-CMI/cmifly) and run
 `CMIfly.py`.
 
+This requires a Stark-energy file from [CMIstark](https://github.com/CFEL-CMI/cmistark) for the
+molecule/state of interest.
+
 
 ## Documentation
 
-For now, this code is undocumented; this needs to be changed.
+For now, this code is undocumented; this needs to be changed;-)
 
 ### Some notes on the usage for different setups
 
